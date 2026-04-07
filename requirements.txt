@@ -1,0 +1,5 @@
+rasa==3.6.20
+rasa-sdk
+tensorflow==2.10
+numpy
+sqlalchemy<2.0
