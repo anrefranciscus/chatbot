@@ -1,0 +1,84 @@
+<html>
+<head>
+<title>train_sentiment.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #cf8e6d;}
+.s1 { color: #bcbec4;}
+.s2 { color: #bcbec4;}
+.s3 { color: #7a7e85;}
+.s4 { color: #6aab73;}
+.s5 { color: #2aacb8;}
+</style>
+</head>
+<body bgcolor="#1e1f22">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+train_sentiment.py</font>
+</center></td></tr></table>
+<pre><span class="s0">import </span><span class="s1">numpy </span><span class="s0">as </span><span class="s1">np</span>
+<span class="s0">import </span><span class="s1">tensorflow </span><span class="s0">as </span><span class="s1">tf</span>
+<span class="s0">from </span><span class="s1">tensorflow</span><span class="s2">.</span><span class="s1">keras</span><span class="s2">.</span><span class="s1">preprocessing</span><span class="s2">.</span><span class="s1">text </span><span class="s0">import </span><span class="s1">Tokenizer</span>
+<span class="s0">from </span><span class="s1">tensorflow</span><span class="s2">.</span><span class="s1">keras</span><span class="s2">.</span><span class="s1">preprocessing</span><span class="s2">.</span><span class="s1">sequence </span><span class="s0">import </span><span class="s1">pad_sequences</span>
+<span class="s0">from </span><span class="s1">tensorflow</span><span class="s2">.</span><span class="s1">keras</span><span class="s2">.</span><span class="s1">models </span><span class="s0">import </span><span class="s1">Sequential</span>
+<span class="s0">from </span><span class="s1">tensorflow</span><span class="s2">.</span><span class="s1">keras</span><span class="s2">.</span><span class="s1">layers </span><span class="s0">import </span><span class="s1">Embedding</span><span class="s2">, </span><span class="s1">LSTM</span><span class="s2">, </span><span class="s1">Dense</span><span class="s2">, </span><span class="s1">GlobalMaxPooling1D</span>
+<span class="s0">import </span><span class="s1">pickle</span>
+
+<span class="s1">sentences </span><span class="s2">= [</span>
+    <span class="s3"># --- LABEL 0: SEDIH ---</span>
+    <span class="s4">&quot;Saya merasa sangat sedih dan putus asa&quot;</span><span class="s2">,</span>
+    <span class="s4">&quot;Hidup ini berat sekali&quot;</span><span class="s2">,</span>
+    <span class="s4">&quot;Saya ingin menangis seharian&quot;</span><span class="s2">,</span>
+    <span class="s4">&quot;Hati saya hancur berkeping-keping&quot;</span><span class="s2">,</span>
+    <span class="s4">&quot;Saya kecewa dengan diri sendiri&quot;</span><span class="s2">,</span>
+    <span class="s4">&quot;Rasanya tidak ada harapan lagi&quot;</span><span class="s2">,</span>
+    <span class="s4">&quot;Hari ini sangat buruk bagi saya&quot;</span><span class="s2">,</span>
+    <span class="s4">&quot;Saya lelah dengan semua masalah ini&quot;</span><span class="s2">,</span>
+
+    <span class="s3"># --- LABEL 1: SENANG ---</span>
+    <span class="s4">&quot;Saya bahagia hari ini&quot;</span><span class="s2">,</span>
+    <span class="s4">&quot;Luar biasa senangnya&quot;</span><span class="s2">,</span>
+    <span class="s4">&quot;Akhirnya saya lulus ujian&quot;</span><span class="s2">,</span>
+    <span class="s4">&quot;Hati saya berbunga-bunga&quot;</span><span class="s2">,</span>
+    <span class="s4">&quot;Saya sangat bersyukur atas hidup ini&quot;</span><span class="s2">,</span>
+    <span class="s4">&quot;Hari ini adalah hari terbaik&quot;</span><span class="s2">,</span>
+    <span class="s4">&quot;Semangat saya sedang membara&quot;</span><span class="s2">,</span>
+    <span class="s4">&quot;Kabar gembira datang hari ini&quot;</span><span class="s2">,</span>
+
+    <span class="s3"># --- LABEL 2: CEMAS ---</span>
+    <span class="s4">&quot;Saya takut akan masa depan&quot;</span><span class="s2">,</span>
+    <span class="s4">&quot;Cemas sekali rasanya&quot;</span><span class="s2">,</span>
+    <span class="s4">&quot;Jantung saya berdebar kencang karena takut&quot;</span><span class="s2">,</span>
+    <span class="s4">&quot;Saya khawatir tidak bisa menyelesaikannya&quot;</span><span class="s2">,</span>
+    <span class="s4">&quot;Pikiran saya penuh dengan ketakutan&quot;</span><span class="s2">,</span>
+    <span class="s4">&quot;Saya panik dan tidak tahu harus berbuat apa&quot;</span><span class="s2">,</span>
+    <span class="s4">&quot;Saya gugup menghadapi besok&quot;</span><span class="s2">,</span>
+    <span class="s4">&quot;Rasanya tidak tenang sama sekali&quot;</span>
+<span class="s2">]</span>
+
+<span class="s1">labels </span><span class="s2">= [</span><span class="s5">0</span><span class="s2">] * </span><span class="s5">8 </span><span class="s2">+ [</span><span class="s5">1</span><span class="s2">] * </span><span class="s5">8 </span><span class="s2">+ [</span><span class="s5">2</span><span class="s2">] * </span><span class="s5">8</span>
+
+<span class="s1">tokenizer </span><span class="s2">= </span><span class="s1">Tokenizer</span><span class="s2">(</span><span class="s1">num_words</span><span class="s2">=</span><span class="s5">1000</span><span class="s2">, </span><span class="s1">oov_token</span><span class="s2">=</span><span class="s4">&quot;&lt;OOV&gt;&quot;</span><span class="s2">)</span>
+<span class="s1">tokenizer</span><span class="s2">.</span><span class="s1">fit_on_texts</span><span class="s2">(</span><span class="s1">sentences</span><span class="s2">)</span>
+<span class="s1">sequences </span><span class="s2">= </span><span class="s1">tokenizer</span><span class="s2">.</span><span class="s1">texts_to_sequences</span><span class="s2">(</span><span class="s1">sentences</span><span class="s2">)</span>
+<span class="s1">padded </span><span class="s2">= </span><span class="s1">pad_sequences</span><span class="s2">(</span><span class="s1">sequences</span><span class="s2">, </span><span class="s1">maxlen</span><span class="s2">=</span><span class="s5">20</span><span class="s2">, </span><span class="s1">padding</span><span class="s2">=</span><span class="s4">'post'</span><span class="s2">)</span>
+
+<span class="s1">model </span><span class="s2">= </span><span class="s1">Sequential</span><span class="s2">([</span>
+    <span class="s1">Embedding</span><span class="s2">(</span><span class="s5">1000</span><span class="s2">, </span><span class="s5">16</span><span class="s2">, </span><span class="s1">input_length</span><span class="s2">=</span><span class="s5">20</span><span class="s2">),</span>
+    <span class="s1">LSTM</span><span class="s2">(</span><span class="s5">64</span><span class="s2">, </span><span class="s1">return_sequences</span><span class="s2">=</span><span class="s0">False</span><span class="s2">),</span>
+    <span class="s1">Dense</span><span class="s2">(</span><span class="s5">32</span><span class="s2">, </span><span class="s1">activation</span><span class="s2">=</span><span class="s4">'relu'</span><span class="s2">),</span>
+    <span class="s1">Dense</span><span class="s2">(</span><span class="s5">3</span><span class="s2">, </span><span class="s1">activation</span><span class="s2">=</span><span class="s4">'softmax'</span><span class="s2">)</span>
+<span class="s2">])</span>
+
+<span class="s1">model</span><span class="s2">.</span><span class="s1">compile</span><span class="s2">(</span><span class="s1">loss</span><span class="s2">=</span><span class="s4">'sparse_categorical_crossentropy'</span><span class="s2">, </span><span class="s1">optimizer</span><span class="s2">=</span><span class="s4">'adam'</span><span class="s2">, </span><span class="s1">metrics</span><span class="s2">=[</span><span class="s4">'accuracy'</span><span class="s2">])</span>
+<span class="s1">print</span><span class="s2">(</span><span class="s4">&quot;Sedang melatih ulang otak bot...&quot;</span><span class="s2">)</span>
+<span class="s1">model</span><span class="s2">.</span><span class="s1">fit</span><span class="s2">(</span><span class="s1">padded</span><span class="s2">, </span><span class="s1">np</span><span class="s2">.</span><span class="s1">array</span><span class="s2">(</span><span class="s1">labels</span><span class="s2">), </span><span class="s1">epochs</span><span class="s2">=</span><span class="s5">100</span><span class="s2">)</span>
+
+<span class="s1">model</span><span class="s2">.</span><span class="s1">save</span><span class="s2">(</span><span class="s4">'sentiment_model.h5'</span><span class="s2">)</span>
+<span class="s0">with </span><span class="s1">open</span><span class="s2">(</span><span class="s4">'tokenizer.pickle'</span><span class="s2">, </span><span class="s4">'wb'</span><span class="s2">) </span><span class="s0">as </span><span class="s1">handle</span><span class="s2">:</span>
+    <span class="s1">pickle</span><span class="s2">.</span><span class="s1">dump</span><span class="s2">(</span><span class="s1">tokenizer</span><span class="s2">, </span><span class="s1">handle</span><span class="s2">, </span><span class="s1">protocol</span><span class="s2">=</span><span class="s1">pickle</span><span class="s2">.</span><span class="s1">HIGHEST_PROTOCOL</span><span class="s2">)</span>
+
+<span class="s1">print</span><span class="s2">(</span><span class="s4">&quot;Model berhasil di-upgrade!&quot;</span><span class="s2">)</span></pre>
+</body>
+</html>
